@@ -18,7 +18,7 @@ test:
 	gcc $(CFLAGS) $(LDFLAGS) -o test test.o cas.o url.o ini.o config.o
 	gcc $(CFLAGS) $(LDFLAGS) -o test-pt test-pt.o cas.o url.o ini.o config.o
 install:
-	cp pam_cas.so /lib
+	cp pam_cas.so /lib/x86_64-linux-gnu/security/
 
 clean:
 	rm *.o *.so test test-pt
