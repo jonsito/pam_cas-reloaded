@@ -22,3 +22,4 @@ install:
 
 clean:
 	rm *.o *.so test test-pt
+  
