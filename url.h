@@ -35,5 +35,7 @@ int URL_GET_request(struct URL_Request *u, char *url, struct string *s);
 int URL_POST_request(struct URL_Request *u, char *url, struct string *s);
 void URL_cleanup(struct URL_Request *u);
 
+void print_cookies(struct URL_Request *u);
+
 #endif
 

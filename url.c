@@ -52,6 +52,8 @@ int URL_GET_request(struct URL_Request *u, char *url, struct string *out) {
 	curl_easy_setopt(u->curl, CURLOPT_WRITEFUNCTION, URL_writefunc);
 	curl_easy_setopt(u->curl, CURLOPT_WRITEDATA, out);
 	curl_easy_setopt(u->curl, CURLOPT_FOLLOWLOCATION, 1); 
+    curl_easy_setopt(u->curl, CURLOPT_COOKIEFILE, "/tmp/cooks"); /* just to start the cookie engine */
+
 
 #ifdef SKIP_PEER_VERIFICATION
 	curl_easy_setopt(u->curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -62,7 +64,7 @@ int URL_GET_request(struct URL_Request *u, char *url, struct string *out) {
 #endif		
 
 	u->res = curl_easy_perform(u->curl);
-
+	//print_cookies(u->curl);
 	return len; 
 }
 
@@ -83,6 +85,7 @@ int URL_POST_request(struct URL_Request *u, char *url, struct string *out) {
 	curl_easy_setopt(u->curl, CURLOPT_FOLLOWLOCATION, 1); 
         curl_easy_setopt(u->curl, CURLOPT_WRITEFUNCTION, URL_writefunc);
         curl_easy_setopt(u->curl, CURLOPT_WRITEDATA, out);
+        curl_easy_setopt(u->curl, CURLOPT_COOKIEFILE, "/tmp/cooks"); /* just to start the cookie engine */
 #ifdef SKIP_PEER_VERIFICATION
         curl_easy_setopt(u->curl, CURLOPT_SSL_VERIFYPEER, 0L);
 #endif
@@ -94,6 +97,32 @@ int URL_POST_request(struct URL_Request *u, char *url, struct string *out) {
         u->res = curl_easy_perform(u->curl);
 
         return len;
+}
+
+void
+print_cookies(struct URL_Request *u)
+{
+  CURLcode res;
+  struct curl_slist *cookies;
+  struct curl_slist *nc;
+  int i;
+
+  printf("Cookies, curl knows:\n");
+  res = curl_easy_getinfo(u->curl, CURLINFO_COOKIELIST, &cookies);
+  if (res != CURLE_OK) {
+    fprintf(stderr, "Curl curl_easy_getinfo failed: %s\n", curl_easy_strerror(res));
+    exit(1);
+  }
+  nc = cookies, i = 1;
+  while (nc) {
+    printf("[%d]: %s\n", i, nc->data);
+    nc = nc->next;
+    i++;
+  }
+  if (i == 1) {
+    printf("(none)\n");
+  }
+  curl_slist_free_all(cookies);
 }
 
 void URL_cleanup(struct URL_Request *u) {

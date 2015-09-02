@@ -4,10 +4,10 @@ LDFLAGS=`curl-config --libs`
 all:
 	gcc $(CFLAGS) -c pam_cas.c
 	gcc $(CFLAGS) -c cas.c
-	gcc $(CFLAGS) `curl-config --libs` -c url.c
+	gcc $(CFLAGS) -c url.c 
 	gcc $(CFLAGS) -c ini.c
 	gcc $(CFLAGS) -c config.c
-	gcc -shared $(LDFLAGS) -o pam_cas.so pam_cas.o cas.o url.o ini.o config.o
+	gcc -shared  -o pam_cas.so pam_cas.o cas.o url.o ini.o config.o $(LDFLAGS)
 test:
 	gcc $(CFLAGS) -c test.c
 	gcc $(CFLAGS) -c test-pt.c

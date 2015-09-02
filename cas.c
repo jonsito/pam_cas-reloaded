@@ -1,7 +1,7 @@
 #include "cas.h"
 
 #define DEBUG 1
-//#define DEBUG_CONTENT 1
+#define DEBUG_CONTENT 1
 
 int CAS_init(struct CAS *c, char *CAS_URL, char *service, char *callback) {
 	strcpy(c->CAS_URL, CAS_URL);
@@ -32,15 +32,24 @@ int CAS_find_part(struct string *s, char *startmatch, char endchar, char *dest, 
 }
 
 int CAS_find_loginticket(struct string *s, char *ticket, int size) {
-	return CAS_find_part(s, "id=\"lt\" value=\"" , '"', ticket, size);
+	return CAS_find_part(s, "name=\"lt\" value=\"" , '"', ticket, size);
 }
 
 int CAS_find_serviceticket(struct string *s, char *ticket, int size) {
-	return CAS_find_part(s, "?ticket=", '\'', ticket, size);
+	return CAS_find_part(s, "CASTGC=", ';', ticket, size);
 }
 
 int CAS_find_user(struct string *s, char *user, int size) {
 	return CAS_find_part(s, "<cas:user>", '<', user, size);
+}
+
+int CAS_find_session(struct string *s, char *session, int size) {
+	return CAS_find_part(s, "login;jsessionid=" , '\"', session, size);
+}
+
+
+int CAS_find_execution(struct string *s, char *execution, int size) {
+	return CAS_find_part(s, " name=\"execution\" value=\"" , '\"', execution, size);
 }
 
 int CAS_find_pgt(struct string *s, char *pt, int size) {
@@ -50,7 +59,10 @@ int CAS_find_pgt(struct string *s, char *pt, int size) {
 int CAS_login(struct CAS *c, char *uname, char *pass) {
 	char URL[1000];
 	char lt[512];
+	char sess[512];
+	char execution[512];
 	int ret = 0;
+	//int ret2 = 0;
 	struct string content;
 	init_string(&content);
 	
@@ -62,10 +74,17 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 	URL_GET_request(&c->u, URL, &content);
 
 #ifdef DEBUG_CONTENT
-	LOG_MSG(LOG_DEBUG, "/login: %s", content.ptr);
+	LOG_MSG(LOG_DEBUG, "get done, return from get: %s\n", content.ptr);
+#endif
+	ret = CAS_find_loginticket(&content, lt, 512);
+	CAS_find_session(&content, sess, 512);
+	CAS_find_execution(&content, execution, 512);
+
+#ifdef DEBUG
+		LOG_MSG(LOG_INFO, "got session: %s\n", sess);
+		LOG_MSG(LOG_INFO, "got execution: %s\n", execution);
 #endif
 
-	ret = CAS_find_loginticket(&content, lt, 512);
 	free(content.ptr);
 	content.len = 0;
 
@@ -83,16 +102,29 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 
 	init_string(&content);
 
+	if (c->service != NULL)
+			sprintf(URL, "%s;jsessionid=%s", URL, sess);
+		else
+			sprintf(URL, "%s;jsessionid=%s", URL, sess);
+
 	URL_add_form(&c->u, "username", uname);
 	URL_add_form(&c->u, "password", pass);
 	URL_add_form(&c->u, "lt", lt);
+	URL_add_form(&c->u, "execution", execution);
+	URL_add_form(&c->u, "_eventId", "submit");
+	URL_add_form(&c->u, "submit", "LogIn");
+
+
 	if (c->service)
 		URL_add_form(&c->u, "service", c->service);
 
-
+#ifdef DEBUG
+		LOG_MSG(LOG_INFO, "doing post for user: %s\n", uname);
+		LOG_MSG(LOG_INFO, "with lt: %s\n", lt);
+#endif
 	URL_POST_request(&c->u, URL, &content); 
 #ifdef DEBUG_CONTENT
-	LOG_MSG(LOG_DEBUG, "serviceTicket: %s\n", content.ptr);
+	LOG_MSG(LOG_DEBUG, "post done, return from post: %s\n", content.ptr);
 #endif
 	ret = CAS_find_serviceticket(&content, lt, 512);
 	free(content.ptr);
