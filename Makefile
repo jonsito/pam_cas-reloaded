@@ -1,10 +1,10 @@
 CFLAGS=-g -Wall -O3 -fPIC
-LDFLAGS=-lcurl
+LDFLAGS=`curl-config --libs`
 
 all:
 	gcc $(CFLAGS) -c pam_cas.c
 	gcc $(CFLAGS) -c cas.c
-	gcc $(CFLAGS) -c url.c
+	gcc $(CFLAGS) `curl-config --libs` -c url.c
 	gcc $(CFLAGS) -c ini.c
 	gcc $(CFLAGS) -c config.c
 	gcc -shared $(LDFLAGS) -o pam_cas.so pam_cas.o cas.o url.o ini.o config.o
