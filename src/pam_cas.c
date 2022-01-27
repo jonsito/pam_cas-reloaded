@@ -67,7 +67,7 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
 
         ret = load_config(&c, PAM_CAS_CONFIGFILE);
         if (!ret) {
-                LOG_MSG(LOG_ERR,  "Failed to load configuration at %s!", PAM_CASCONFIG_FILE);
+                LOG_MSG(LOG_ERR,  "Failed to load configuration at %s!", PAM_CAS_CONFIGFILE);
                 return PAM_AUTH_ERR;
         }
 

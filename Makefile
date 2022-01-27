@@ -42,7 +42,7 @@ dist: all test
 	cp conf/pam_cas.conf dist$(ETCDIR)/pam_cas.conf
 	cp README dist/usr/share/doc/pam_cas/README
 
-pam_cas-reloaded.tgz: dist
+distfile: dist
 	tar zcvf pam_cas-reloaded.tgz -C dist .
 
 # must be done as sudo
