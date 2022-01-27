@@ -12,6 +12,7 @@ endif
 ETCDIR=/etc/security
 
 all: src/*.c src/*.h
+	mkdir -p obj
 	gcc $(CFLAGS) -c src/pam_cas.c -o obj/pam_cas.o
 	gcc $(CFLAGS) -c src/cas.c -o obj/cas.o
 	gcc $(CFLAGS) -c src/url.c  -o obj/url.o
@@ -20,14 +21,15 @@ all: src/*.c src/*.h
 	gcc -shared -o obj/pam_cas.so obj/pam_cas.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
 
 test: src/test.c src/test-pt.c
+	mkdir -p obj
 	gcc $(CFLAGS) -c src/test.c -o obj/test.o
 	gcc $(CFLAGS) -c src/test-pt.c -o obj/test-pt.o
 	gcc $(CFLAGS) -c src/cas.c -o obj/cas.o
 	gcc $(CFLAGS) -c src/url.c  -o obj/url.o
 	gcc $(CFLAGS) -c src/ini.c -o obj/ini.o
 	gcc $(CFLAGS) -c src/config.c -o obj/config.o
-	gcc $(CFLAGS) $(LDFLAGS) -o obj/test obj/test.o obj/cas.o obj/url.o obj/ini.o obj/config.o
-	gcc $(CFLAGS) $(LDFLAGS) -o obj/test-pt obj/test-pt.o obj/cas.o obj/url.o obj/ini.o obj/config.o
+	gcc $(CFLAGS) $(LDFLAGS) -o obj/test obj/test.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
+	gcc $(CFLAGS) $(LDFLAGS) -o obj/test-pt obj/test-pt.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
 
 dist: all test
 	mkdir -p dist$(INSTDIR)
