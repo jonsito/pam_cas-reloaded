@@ -10,7 +10,7 @@ int main(int argv, char **argc) {
 	int ret = 0;
 	CAS_configuration c;
 		
-	ret = load_config(&c, "/etc/pam_cas.conf");
+	ret = load_config(&c, PAM_CAS_CONFIGFILE);
 	if (!ret) {
 		printf("Failed to load configuration!");
 		exit(0);

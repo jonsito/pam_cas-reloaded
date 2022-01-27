@@ -41,10 +41,13 @@ dist: all test
 	cp obj/pam_cas.so dist$(INSTDIR)/pam_cas.so
 	cp conf/pam_cas.conf dist$(ETCDIR)/pam_cas.conf
 	cp README dist/usr/share/doc/pam_cas/README
+
+pam_cas-reloaded.tgz: dist
 	tar zcvf pam_cas-reloaded.tgz -C dist .
 
 # must be done as sudo
-install: dist
+install: pam_cas-reloaded.tgz
+	@mv $(ETCDIR)/pam_cas.conf $(ETCDIR)/pam_cas.conf.orig
 	tar zxvf pam_cas-reloaded.tgz -C /
 
 clean:

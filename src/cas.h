@@ -10,6 +10,10 @@
 	syslog(DEST, "%s:%d: " FORMAT, __FILE__, __LINE__, ##__VA_ARGS__)
 #endif
 
+#ifndef PAM_CAS_CONFIGFILE
+#define PAM_CAS_CONFIGFILE "/etc/security/pam_cas.conf"
+#endif
+
 struct CAS {
 	char CAS_URL[500];
 	struct URL_Request u;

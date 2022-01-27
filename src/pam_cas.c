@@ -14,7 +14,6 @@ Changelog:
 // CONFIGURATION
 #define CAS_DEBUG 1
 #define MIN_TICKET_LEN 20
-#define CAS_CONFIG_FILE "/etc/pam_cas.conf"
 
 // Support authentication against CAS
 #define PAM_SM_AUTH
@@ -66,9 +65,9 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
 //	LOG_MSG(LOG_NOTICE, "Got user: %s pass: %s\n", user, pw);
 #endif
 
-        ret = load_config(&c, CAS_CONFIG_FILE);
+        ret = load_config(&c, PAM_CAS_CONFIGFILE);
         if (!ret) {
-                LOG_MSG(LOG_ERR,  "Failed to load configuration at %s!", CAS_CONFIG_FILE);
+                LOG_MSG(LOG_ERR,  "Failed to load configuration at %s!", PAM_CASCONFIG_FILE);
                 return PAM_AUTH_ERR;
         }
 

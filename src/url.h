@@ -14,6 +14,10 @@
         syslog(DEST, "%s:%d: " FORMAT, __FILE__, __LINE__, ##__VA_ARGS__)
 #endif
 
+#ifndef PAM_CAS_COOKIESFILE
+#define PAM_CAS_COOKIESFILE "/var/run/pam_cas.cookies"
+#endif
+
 struct string {
 	char *ptr;
 	size_t len;

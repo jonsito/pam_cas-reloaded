@@ -52,7 +52,7 @@ int URL_GET_request(struct URL_Request *u, char *url, struct string *out) {
 	curl_easy_setopt(u->curl, CURLOPT_WRITEFUNCTION, URL_writefunc);
 	curl_easy_setopt(u->curl, CURLOPT_WRITEDATA, out);
 	curl_easy_setopt(u->curl, CURLOPT_FOLLOWLOCATION, 1); 
-    curl_easy_setopt(u->curl, CURLOPT_COOKIEFILE, "/var/run/pam_cas.cookies"); /* just to start the cookie engine */
+    curl_easy_setopt(u->curl, CURLOPT_COOKIEFILE, PAM_CAS_COOKIESFILE); /* just to start the cookie engine */
 
 
 #ifdef SKIP_PEER_VERIFICATION
@@ -85,7 +85,7 @@ int URL_POST_request(struct URL_Request *u, char *url, struct string *out) {
 	curl_easy_setopt(u->curl, CURLOPT_FOLLOWLOCATION, 1); 
         curl_easy_setopt(u->curl, CURLOPT_WRITEFUNCTION, URL_writefunc);
         curl_easy_setopt(u->curl, CURLOPT_WRITEDATA, out);
-        curl_easy_setopt(u->curl, CURLOPT_COOKIEFILE, "/var/run/pam_cas.cookies"); /* just to start the cookie engine */
+        curl_easy_setopt(u->curl, CURLOPT_COOKIEFILE, PAM_CAS_COOKIESFILE); /* just to start the cookie engine */
 #ifdef SKIP_PEER_VERIFICATION
         curl_easy_setopt(u->curl, CURLOPT_SSL_VERIFYPEER, 0L);
 #endif
