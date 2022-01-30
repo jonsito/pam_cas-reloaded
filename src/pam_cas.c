@@ -31,6 +31,7 @@ Changelog:
 #include "url.h"
 #include "cas.h"
 #include "config.h"
+#include "dit_upm.h"
 
 int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char **argv) {
 	
@@ -70,7 +71,8 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
                 LOG_MSG(LOG_ERR,  "Failed to load configuration at %s!", PAM_CAS_CONFIGFILE);
                 return PAM_AUTH_ERR;
         }
-
+    // JAMC 20220130 from cluck's fork security patch
+    ret = 0;
 	CAS_init(&cas, c.CAS_BASE_URL, c.SERVICE_URL, c.SERVICE_CALLBACK_URL);
 
 	if (c.ENABLE_ST && strncmp(pw, "ST-", 3) == 0 && strlen(pw) > MIN_TICKET_LEN) { // Possibly serviceTicket?
@@ -93,6 +95,10 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
 		LOG_MSG(LOG_INFO, "user+pass combo login!");
 #endif
         	ret = CAS_login(&cas, user, pw);
+            if (ret>0) {
+                char **data=eval_receivedCASData();
+                ret=ditupm_check(data);
+            }
 	}
 
 #ifdef CAS_DEBUG

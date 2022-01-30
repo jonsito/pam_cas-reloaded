@@ -1,0 +1,8 @@
+2022-01-30
+    - Add changelog. Edit README
+    - Create skeleton files dit_upm.[ch] to handle dit-upm specific code
+2022-01-26
+    - Initial fork from DFC-Incubator
+    - Create a more clean structure and makefile
+    - Move some hard-coded paths to #defines in header files
+    - Add build and dist options in makefile. Add options to compile under Ubuntu or Fedora

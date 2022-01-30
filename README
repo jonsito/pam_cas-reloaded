@@ -1,4 +1,37 @@
-The aim of the module is to provide authentication against the Yale CAS Authentication service, both by a user+password and a user+ticket combination, so it can be used for direct as well as proxied authentication.
+This is a fork of DFC-Incubator's version of pam-cas-reloaded
+intended to be used in student's lab at Departamento de Ingenieria Telematica - ETSIT UPM
+
+Several changes are done to original code in order to:
+- Adapt to CAS-UPM authentication server issues
+- Retrieve and handle extra parameters from CAS server:
+  * Username ( login name and home directory )
+  * Gecos ( user full name for informational purposes )
+  * User role ( Student, teacher, staff, to evaluate group id )
+  * School adscription ( to reject users outside ETSIT-UPM )
+  * DNI ( to extract user id from these unique identifier )
+- Check for presence of user's /home directory, if not exists, create with evaluated uid and gid
+- On failure, let's play next pam module ( internal DIT-Ldap server ) to check authentication
+  for additional users ( admin, tests and guest accounts )
+
+Author of this fork: Juan Antonio Martinez <juanantonio.martinez@upm.es>
+(Also see original credits bellow )
+
+Madrid, Jan-30-2022
+
+Usefull links:
+https://siu.upm.es
+https://acceso.lab.dit.upm.es/
+https://programmerclick.com/article/838119871
+https://programmerclick.com/article/295619741
+https://as.uv.es/UVDOC/cas.shtml
+https://siupruebas.upm.es/siu_ayuda/index.html
+https://github.com/atiti/pam_cas-reloaded
+https://github.com/DFC-Incubator/pam_cas-reloaded
+
+--------- Original README follows ----------
+The aim of the module is to provide authentication against the Yale CAS Authentication service,
+both by a user+password and a user+ticket combination, so it can be used for direct
+as well as proxied authentication.
 
 Usage:
 
@@ -15,25 +48,20 @@ auth	   required	pam_deny.so
 
 Test! (Watch the syslog for authentication attempts)
 
-
 Changelog:
 
 - 26/Jan/2012: v0.3 Configuration file support added
 - 25/Jan/2012: v0.2 CAS full user+pass combo login, and serviceValidate implemented
 - 25/Jan/2012: v0.1 Initial code
 
-
-
 Useful documentation on CAS:
 - http://www.jasig.org/cas/protocol
 - http://www.jasig.org/cas/cas2-architecture
 - https://wiki.jasig.org/display/CAS/Proxy+CAS+Walkthrough
 
-
 Credits:
 - Config file loading is done by the inih simple C parser (http://code.google.com/p/inih/)
 - CAS/PAM code was inspired by the Yale pam_cas module as well as the french esup-portail.org's version.
-
 
 Contact: Attila Sukosd <attila@cc.dtu.dk>
 Date: Jan 25, 2012

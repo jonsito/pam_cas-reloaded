@@ -11,16 +11,21 @@ else
 endif
 ETCDIR=/etc/security
 
-all: src/*.c src/*.h
+SRCS=src/cas.c src/url.c src/ini.c src/config.c src/dit_upm.c src/pam_cas.c
+TESTS=src/test.c src/test-pt.c
+HDRS=src/cas.h src/url.h src/ini.h src/config.h src/dit_upm.h
+
+module: $(SRCS) $(HDRS)
 	mkdir -p obj
 	gcc $(CFLAGS) -c src/pam_cas.c -o obj/pam_cas.o
 	gcc $(CFLAGS) -c src/cas.c -o obj/cas.o
 	gcc $(CFLAGS) -c src/url.c  -o obj/url.o
 	gcc $(CFLAGS) -c src/ini.c -o obj/ini.o
 	gcc $(CFLAGS) -c src/config.c -o obj/config.o
-	gcc -shared -o obj/pam_cas.so obj/pam_cas.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
+	gcc $(CFLAGS) -c src/dit_upm.c -o obj/dit_upm.o
+	gcc -shared -o obj/pam_cas.so obj/pam_cas.o obj/cas.o obj/url.o obj/ini.o obj/config.o obj/dit_upm.o $(LDFLAGS)
 
-test: src/test.c src/test-pt.c
+tests: $(TESTS) $(HDRS)
 	mkdir -p obj
 	gcc $(CFLAGS) -c src/test.c -o obj/test.o
 	gcc $(CFLAGS) -c src/test-pt.c -o obj/test-pt.o
@@ -31,7 +36,9 @@ test: src/test.c src/test-pt.c
 	gcc $(CFLAGS) $(LDFLAGS) -o obj/test obj/test.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
 	gcc $(CFLAGS) $(LDFLAGS) -o obj/test-pt obj/test-pt.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
 
-dist: all test
+all: module tests
+
+dist: all
 	mkdir -p dist$(INSTDIR)
 	mkdir -p dist$(ETCDIR)
 	mkdir -p dist/usr/local/bin
@@ -41,6 +48,7 @@ dist: all test
 	cp obj/pam_cas.so dist$(INSTDIR)/pam_cas.so
 	cp conf/pam_cas.conf dist$(ETCDIR)/pam_cas.conf
 	cp README dist/usr/share/doc/pam_cas/README
+	cp Changelog dist/usr/share/doc/pam_cas/Changelog
 
 distfile: dist
 	tar zcvf pam_cas-reloaded.tgz -C dist .
