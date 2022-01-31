@@ -1,4 +1,5 @@
 #include "cas.h"
+#include "dit_upm.h"
 
 #define DEBUG 1
 #define DEBUG_CONTENT 1
@@ -58,9 +59,9 @@ int CAS_find_pgt(struct string *s, char *pt, int size) {
 
 int CAS_login(struct CAS *c, char *uname, char *pass) {
 	char URL[1000];
-	char lt[512];
-	char sess[512];
-	char execution[512];
+	char lt[1024];
+	char sess[2048];
+	char execution[2048]; // siu.upm.es returns about "1500" bytes on execution parameter
 	int ret = 0;
 	//int ret2 = 0;
 	struct string content;
@@ -76,9 +77,13 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 #ifdef DEBUG_CONTENT
 	LOG_MSG(LOG_DEBUG, "get done, return from get: %s\n", content.ptr);
 #endif
-	ret = CAS_find_loginticket(&content, lt, 512);
-	CAS_find_session(&content, sess, 512);
-	CAS_find_execution(&content, execution, 512);
+    // cas protocol states that login ticket is optional
+    // so try to extract from server data.
+    // if no login ticket provided generate unique one
+	ret = CAS_find_loginticket(&content, lt, sizeof(lt));
+    if (!ret) ret = ditupm_generateLoginTicket(uname, lt, sizeof(lt));
+	CAS_find_session(&content, sess, sizeof(sess));
+	CAS_find_execution(&content, execution, sizeof(execution));
 
 #ifdef DEBUG
 		LOG_MSG(LOG_INFO, "got session: %s\n", sess);
@@ -88,7 +93,7 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 	free(content.ptr);
 	content.len = 0;
 
-	if (!ret) { 
+	if (!ret) {
 #ifdef DEBUG
 		LOG_MSG(LOG_INFO, "Could not get login ticket!\n");
 #endif
@@ -135,6 +140,11 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 #endif
 		return -2;
 	}
+
+    if (ret>0) {
+        char **data=eval_receivedCASData(&content);
+        ret=ditupm_check(&content);
+    }
 
 #ifdef DEBUG
 	LOG_MSG(LOG_INFO, "Successfully logged in!\n");

@@ -1,5 +1,5 @@
 CFLAGS=-g -Wall -O3 -fPIC
-LDFLAGS=`curl-config --libs`
+LDFLAGS=-lcrypto `curl-config --libs`
 
 OS=$(shell lsb_release -si)
 ifeq ($(OS),Ubuntu)
@@ -23,7 +23,7 @@ module: $(SRCS) $(HDRS)
 	gcc $(CFLAGS) -c src/ini.c -o obj/ini.o
 	gcc $(CFLAGS) -c src/config.c -o obj/config.o
 	gcc $(CFLAGS) -c src/dit_upm.c -o obj/dit_upm.o
-	gcc -shared -o obj/pam_cas.so obj/pam_cas.o obj/cas.o obj/url.o obj/ini.o obj/config.o obj/dit_upm.o $(LDFLAGS)
+	gcc -shared -o obj/pam_cas.so obj/dit_upm.o obj/pam_cas.o obj/cas.o obj/url.o obj/ini.o obj/config.o  $(LDFLAGS)
 
 tests: $(TESTS) $(HDRS)
 	mkdir -p obj
@@ -33,8 +33,9 @@ tests: $(TESTS) $(HDRS)
 	gcc $(CFLAGS) -c src/url.c  -o obj/url.o
 	gcc $(CFLAGS) -c src/ini.c -o obj/ini.o
 	gcc $(CFLAGS) -c src/config.c -o obj/config.o
-	gcc $(CFLAGS) $(LDFLAGS) -o obj/test obj/test.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
-	gcc $(CFLAGS) $(LDFLAGS) -o obj/test-pt obj/test-pt.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
+	gcc $(CFLAGS) -c src/dit_upm.c -o obj/dit_upm.o
+	gcc $(CFLAGS) $(LDFLAGS) -o obj/test obj/dit_upm.o obj/test.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
+	gcc $(CFLAGS) $(LDFLAGS) -o obj/test-pt obj/dit_upm.o obj/test-pt.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
 
 all: module tests
 

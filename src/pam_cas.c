@@ -31,7 +31,6 @@ Changelog:
 #include "url.h"
 #include "cas.h"
 #include "config.h"
-#include "dit_upm.h"
 
 int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char **argv) {
 	
@@ -95,10 +94,6 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
 		LOG_MSG(LOG_INFO, "user+pass combo login!");
 #endif
         	ret = CAS_login(&cas, user, pw);
-            if (ret>0) {
-                char **data=eval_receivedCASData();
-                ret=ditupm_check(data);
-            }
 	}
 
 #ifdef CAS_DEBUG

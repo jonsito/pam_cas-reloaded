@@ -10,8 +10,9 @@
 #else
 #define EXTERN
 #endif
-EXTERN int ditupm_check(char *args[]);
-EXTERN char **eval_receivedCASData();
+EXTERN int ditupm_check(struct string *data);
+EXTERN char **eval_receivedCASData(struct string *data);
+EXTERN int ditupm_generateLoginTicket(char *user, char *lt, size_t size);
 
 #undef EXTERN
 #endif //PAM_CAS_RELOADED_DIT_UPM_H
