@@ -13,6 +13,8 @@ Several changes are done to original code in order to:
 - On failure, let's play next pam module ( internal DIT-Ldap server ) to check authentication
   for additional users ( admin, tests and guest accounts )
 
+See conf/common-auth to see sample pam config for Dit-UPM labs
+
 Author of this fork: Juan Antonio Martinez <juanantonio.martinez@upm.es>
 (Also see original credits bellow )
 

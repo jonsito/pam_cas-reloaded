@@ -38,7 +38,7 @@ tests: $(TESTS) $(HDRS)
 
 all: module tests
 
-dist: all
+dist: all README Changelog conf/common-auth.sample
 	mkdir -p dist$(INSTDIR)
 	mkdir -p dist$(ETCDIR)
 	mkdir -p dist/usr/local/bin
@@ -49,13 +49,14 @@ dist: all
 	cp conf/pam_cas.conf dist$(ETCDIR)/pam_cas.conf
 	cp README dist/usr/share/doc/pam_cas/README
 	cp Changelog dist/usr/share/doc/pam_cas/Changelog
+	cp conf/common-auth.sample dist/usr/share/doc/common-auth.sample
 
 distfile: dist
 	tar zcvf pam_cas-reloaded.tgz -C dist .
 
 # must be done as sudo
 install: pam_cas-reloaded.tgz
-	@mv $(ETCDIR)/pam_cas.conf $(ETCDIR)/pam_cas.conf.orig
+	mv $(ETCDIR)/pam_cas.conf $(ETCDIR)/pam_cas.conf.orig || true
 	tar zxvf pam_cas-reloaded.tgz -C /
 
 clean:
