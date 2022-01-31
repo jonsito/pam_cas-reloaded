@@ -97,12 +97,12 @@ int ditupm_generateLoginTicket(char *user, char *lt, size_t size) {
     MD5_CTX c;
     char buff[512];
     unsigned char md5[MD5_DIGEST_LENGTH];
-    memset(buff,0,size);
+    memset(buff,0,sizeof(buff));
+    memset(lt,0,size);
     snprintf(buff,sizeof(buff),"%s-%ld",user,time(NULL));
     MD5_Init(&c);
     MD5_Update(&c, buff, strlen(buff));
     MD5_Final(md5, &c);
-    memset(lt,0,size);
     sprintf(lt,"LT-");
     for( int n=0;n<MD5_DIGEST_LENGTH;n++) {
         sprintf(lt+strlen(lt),"%02X",md5[n]);
