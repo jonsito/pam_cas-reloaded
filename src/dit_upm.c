@@ -11,6 +11,9 @@
 #define __DIT_UPM_C__
 #include "dit_upm.h"
 
+#define DEBUG 1
+#define DEBUG_CONTENT 1
+
 /**
  * extract user name from cas received data
  * @return user name or null on faillure
@@ -103,6 +106,7 @@ int ditupm_generateLoginTicket(char *user, char *lt, size_t size) {
     for( int n=0;n<sizeof(md5);n++) {
         snprintf(lt,size,"%s%02X",lt,md5[n]);
     }
+    LOG_MSG(LOG_DEBUG, "evaluated login ticket is: %s\n", lt);
     return 1;
 }
 
