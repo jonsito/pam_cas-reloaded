@@ -34,8 +34,8 @@ tests: $(TESTS) $(HDRS)
 	gcc $(CFLAGS) -c src/ini.c -o obj/ini.o
 	gcc $(CFLAGS) -c src/config.c -o obj/config.o
 	gcc $(CFLAGS) -c src/dit_upm.c -o obj/dit_upm.o
-	gcc $(CFLAGS) $(LDFLAGS) -o obj/test obj/dit_upm.o obj/test.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
-	gcc $(CFLAGS) $(LDFLAGS) -o obj/test-pt obj/dit_upm.o obj/test-pt.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
+	gcc $(CFLAGS) $(LDFLAGS) -o obj/cas_test obj/dit_upm.o obj/test.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
+	gcc $(CFLAGS) $(LDFLAGS) -o obj/cas_test-pt obj/dit_upm.o obj/test-pt.o obj/cas.o obj/url.o obj/ini.o obj/config.o $(LDFLAGS)
 
 all: module tests
 
@@ -44,8 +44,8 @@ dist: all README Changelog conf/common-auth.sample
 	mkdir -p dist$(ETCDIR)
 	mkdir -p dist/usr/local/bin
 	mkdir -p dist/usr/share/doc/pam_cas
-	cp obj/test dist/usr/local/bin/test
-	cp obj/test-pt dist/usr/local/bin/test-pt
+	cp obj/cas_test dist/usr/local/bin/cas_test
+	cp obj/cas_test-pt dist/usr/local/bin/cas_test-pt
 	cp obj/pam_cas.so dist$(INSTDIR)/pam_cas.so
 	cp conf/pam_cas.conf dist$(ETCDIR)/pam_cas.conf
 	cp README dist/usr/share/doc/pam_cas/README
@@ -53,7 +53,7 @@ dist: all README Changelog conf/common-auth.sample
 	cp conf/common-auth.sample dist/usr/share/doc/common-auth.sample
 
 distfile: dist
-	tar zcvf pam_cas-reloaded.tgz -C dist .
+	tar zcvf pam_cas-reloaded.tgz -C dist --owner=0 --group=0 .
 
 # must be done as sudo
 install: pam_cas-reloaded.tgz

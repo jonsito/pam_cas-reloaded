@@ -14,21 +14,63 @@
 #define DEBUG 1
 #define DEBUG_CONTENT 1
 
+struct siu_casData {
+    char item[128];
+    char value[256];
+};
+
+static struct siu_casData casItems[]= {
+        {"cn",""}, // gecos
+        {"displayName",""},
+        {"eduPersonAffiliation",""}, // group name
+        {"eduPersonPrimaryAffiliation",""}, // primary group
+        {"eduPersonUniqueId",""},
+        {"employeeType",""}, // Estudiante, Profesor, Laboral, ...
+        {"givenName",""}, // nombre
+        {"mail",""}, // correo
+        {"o",""}, // organizacion
+        {"schacGender",""},
+        {"schacHomeOrganization",""},
+        {"schacHomeOrganizationType",""},
+        {"schacPersonalUniqueID",""},
+        {"schacSn1",""}, // apellido1
+        {"schacSn2",""}, // apellido2
+        {"sn",""}, // apellidos
+        {"uid",""}, // login
+        {"upmCentre",""}, // centros de adscripcion [09: etsit]
+        {"upmClassifCode",""}, // tipos de adscripcion
+        {"upmPersonalUniqueID",""}, //DNI
+        { "",""}
+};
+
+static int ditupm_find_value(struct string *s,int index) {
+    char *ptr = NULL;
+    char *sp = NULL;
+    char *ep = NULL;
+    char key[128];
+    snprintf(key,128,"<td><kbd><span>%s",casItems[index].item);
+    ptr = strstr(s->ptr, key);
+    memset(casItems[index].value,0,sizeof(casItems[index].value));
+    if (ptr) {
+        sp=strstr(ptr,"<td><code><span>[");
+        ep=strstr(ptr,"]</span></code></td>");
+        strncpy(casItems[index].value, sp+17, ep-(sp+17));
+        return 1; // found
+    }
+    return 0; // not found
+}
+
 /**
  * extract user name from cas received data
  * @return user name or null on faillure
  */
-static char *getUserName(struct string *data) {
-    return NULL;
-}
+static char *getUserName() { return casItems[16].value; }
 
 /**
  * extract full name from cas received data
  * @return gecos or null on faillure
  */
-static char *getGecos(struct string *data) {
-    return NULL;
-}
+static char *getGecos() { return casItems[0].value; }
 
 /**
  * extract user ID from CAS data
@@ -36,7 +78,7 @@ static char *getGecos(struct string *data) {
  * @param cas_data
  * @return user id or -1 on error
  */
-static int getUserID(struct string *data) {
+static int getUserID() {
     return -1;
 }
 
@@ -45,7 +87,7 @@ static int getUserID(struct string *data) {
  * @param cas_data
  * @return primary group id ( student, teacher, staff, other ), or -1 on error
  */
-static int getGroupID(struct string *data) {
+static int getGroupID() {
     return 0;
 }
 
@@ -54,7 +96,7 @@ static int getGroupID(struct string *data) {
  * @param cas_data
  * @return
  */
-static int *getGroups(struct string *data) {
+static int *getGroups() {
     static int groups[16];
     memset(groups,0,sizeof(groups));
     return groups;
@@ -65,7 +107,11 @@ static int *getGroups(struct string *data) {
  * @param cas_data
  * @return 1:allowed 0:notAllowed -1:error
  */
-static int isAllowed(struct string *data) {
+static int isAllowed() {
+    if (!strstr(casItems[19].value,"09")) return 0; // escuela de adscripcion
+    if (strstr(casItems[5].value,"L")) return 1; // tipo L,E,P
+    if (strstr(casItems[5].value,"E")) return 1; // tipo L,E,P
+    if (strstr(casItems[5].value,"P")) return 1; // tipo L,E,P
     return 0;
 }
 
@@ -118,18 +164,18 @@ int ditupm_generateLoginTicket(char *user, char *lt, size_t size) {
  */
 int ditupm_check(struct string *args) {
     // first of all check membresy
-    int res=isAllowed(args);
+    int res=isAllowed();
     if (res!=1) return res;
     // extract user name, gecos, userid, gid and secondary groups
-    char *username= getUserName(args);
+    char *username= getUserName();
     if (!username) return -1;
-    char *gecos= getGecos(args);
+    char *gecos= getGecos();
     if (!gecos) return -1;
-    int userid= getUserID(args);
+    int userid= getUserID();
     if (userid<=0) return -1;
-    int groupid= getGroupID(args);
+    int groupid= getGroupID();
     if (groupid<=0) return -1;
-    int *groups= getGroups(args);
+    int *groups= getGroups();
     if (!groups[0]) return -1;
     // now check for home
     res=checkAndCreateHome(username, userid,groupid);
@@ -145,10 +191,13 @@ int ditupm_check(struct string *args) {
  * get received parameters from CAS login request, and prepare it to be parsed
  * @return parsed data
  */
-char **eval_receivedCASData(struct string  *args){
-    return NULL;
+int eval_receivedCASData(struct string  *content){
+    for (int n=0; strlen(casItems[n].item)!=0;n++) {
+        ditupm_find_value(content,n);
+        fprintf(stderr,"%-30s - %s\n",casItems[n].item,casItems[n].value);
+    }
+    return 0;
 }
-
 
 /* end of file */
 #undef __DIT_UPM_C__

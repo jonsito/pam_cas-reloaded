@@ -76,27 +76,39 @@ int URL_POST_request(struct URL_Request *u, char *url, struct string *out) {
 	LOG_MSG(LOG_INFO, "POST URL: %s\n", url);
 #endif
 
-	if (u->formpost != NULL)
-		curl_easy_setopt(u->curl, CURLOPT_HTTPPOST, u->formpost);
-	
-	if (u->headerlist != NULL)
-		curl_easy_setopt(u->curl, CURLOPT_HTTPHEADER, u->headerlist);	
+	if (u->formpost != NULL) {
+        // siu.upm.es does not uses multipart post, just urlencoded body
+        // so need to translate it into proper string
+        //curl_easy_setopt(u->curl, CURLOPT_HTTPPOST, u->formpost);
+        char postdata[2048]; //should be enought
+        memset(postdata,0,sizeof(postdata));
+        for( struct curl_httppost *entry=u->formpost;entry->next;entry=entry->next) {
+            strcat(postdata,entry->name);
+            strcat(postdata,"=");
+            strcat(postdata,entry->contents);
+            if (entry->next) strcat(postdata,"&");
+        }
+        curl_easy_setopt(u->curl, CURLOPT_POSTFIELDS, postdata);
+    }
 
+	if (u->headerlist != NULL) {
+        curl_easy_setopt(u->curl, CURLOPT_HTTPHEADER, u->headerlist);
+    }
+    curl_easy_setopt(u->curl, CURLOPT_USERAGENT, "Curl/7.79.1");
 	curl_easy_setopt(u->curl, CURLOPT_FOLLOWLOCATION, 1); 
-        curl_easy_setopt(u->curl, CURLOPT_WRITEFUNCTION, URL_writefunc);
-        curl_easy_setopt(u->curl, CURLOPT_WRITEDATA, out);
-        curl_easy_setopt(u->curl, CURLOPT_COOKIEFILE, PAM_CAS_COOKIESFILE); /* just to start the cookie engine */
+    curl_easy_setopt(u->curl, CURLOPT_WRITEFUNCTION, URL_writefunc);
+    curl_easy_setopt(u->curl, CURLOPT_WRITEDATA, out);
+    curl_easy_setopt(u->curl, CURLOPT_COOKIEFILE, PAM_CAS_COOKIESFILE); /* just to start the cookie engine */
 #ifdef SKIP_PEER_VERIFICATION
-        curl_easy_setopt(u->curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(u->curl, CURLOPT_SSL_VERIFYPEER, 0L);
 #endif
 
 #ifdef SKIP_HOSTNAME_VERIFICATION
-        curl_easy_setopt(u->curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(u->curl, CURLOPT_SSL_VERIFYHOST, 0L);
 #endif
 
-        u->res = curl_easy_perform(u->curl);
-
-        return len;
+    u->res = curl_easy_perform(u->curl);
+    return len;
 }
 
 void

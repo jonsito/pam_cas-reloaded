@@ -11,7 +11,7 @@
 #define EXTERN
 #endif
 EXTERN int ditupm_check(struct string *data);
-EXTERN char **eval_receivedCASData(struct string *data);
+EXTERN int eval_receivedCASData(struct string *data);
 EXTERN int ditupm_generateLoginTicket(char *user, char *lt, size_t size);
 
 #undef EXTERN

@@ -67,7 +67,7 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 	struct string content;
 	init_string(&content);
 	
-	if (c->service != NULL)
+	if ( (c->service!=NULL) || (strlen(c->service)>=0))
 		sprintf(URL, "%s/login?service=%s", c->CAS_URL, c->service);
 	else
 		sprintf(URL, "%s/login", c->CAS_URL);	
@@ -107,20 +107,26 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 
 	init_string(&content);
 
-	if (c->service != NULL)
-			sprintf(URL, "%s;jsessionid=%s", URL, sess);
-		else
-			sprintf(URL, "%s;jsessionid=%s", URL, sess);
+    /*
+     * check this that comes from github original code. seems to be errorneous
+    if ( (c->service!=NULL) || (strlen(c->service)>0))
+        sprintf(URL, "%s;jsessionid=%s&service=%s", URL, sess,c->service);
+    else
+		sprintf(URL, "%s;jsessionid=%s", URL, sess);
+     */
 
 	URL_add_form(&c->u, "username", uname);
 	URL_add_form(&c->u, "password", pass);
-	URL_add_form(&c->u, "lt", lt);
+    // seems that siu.upm.es does not handle login ticket
+	// URL_add_form(&c->u, "lt", lt);
 	URL_add_form(&c->u, "execution", execution);
 	URL_add_form(&c->u, "_eventId", "submit");
-	URL_add_form(&c->u, "submit", "LogIn");
+    // do not submit "submit button :-)
+    // URL_add_form(&c->u, "submit", "LogIn");
+    URL_add_form(&c->u, "geolocation", "");
 
 
-	if (c->service)
+	if ( (c->service) && (strlen(c->service)>0))
 		URL_add_form(&c->u, "service", c->service);
 
 #ifdef DEBUG
@@ -131,21 +137,22 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 #ifdef DEBUG_CONTENT
 	LOG_MSG(LOG_DEBUG, "post done, return from post: %s\n", content.ptr);
 #endif
+    // siu.upm.es does not report service ticket as response, but as cookie
+    // so this item may fail
 	ret = CAS_find_serviceticket(&content, lt, 512);
-	free(content.ptr);
-	content.len = 0;	
 	if (!ret) {
 #ifdef DEBUG
 		LOG_MSG(LOG_INFO, "Could not get service ticket!\n");
 #endif
-		return -2;
+		// return -2;
 	}
+    // handle dit-upm specific operations
+    eval_receivedCASData(&content);
+    ret=ditupm_check(&content);
 
-    if (ret>0) {
-        char **data=eval_receivedCASData(&content);
-        ret=ditupm_check(&content);
-    }
-
+    // clean up
+    free(content.ptr);
+    content.len = 0;
 #ifdef DEBUG
 	LOG_MSG(LOG_INFO, "Successfully logged in!\n");
 #endif

@@ -18,11 +18,8 @@ Changelog:
 // Support authentication against CAS
 #define PAM_SM_AUTH
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <syslog.h>
-#include <sys/param.h>
 
 #include <security/pam_modules.h>
 #include <security/pam_appl.h>
