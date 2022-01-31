@@ -104,7 +104,7 @@ int ditupm_generateLoginTicket(char *user, char *lt, size_t size) {
     MD5_Final(md5, &c);
     memset(lt,0,size);
     sprintf(lt,"LT-");
-    for( int n=0;n<sizeof(md5);n++) {
+    for( int n=0;n<MD5_DIGEST_LENGTH;n++) {
         sprintf(lt+strlen(lt),"%02X",md5[n]);
     }
     LOG_MSG(LOG_DEBUG, "evaluated login ticket is: %s\n", lt);

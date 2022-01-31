@@ -91,7 +91,7 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
 #endif
 	} else if (c.ENABLE_UP) {
 #ifdef CAS_DEBUG
-		LOG_MSG(LOG_INFO, "user+pass combo login!");
+		LOG_MSG(LOG_INFO, "user+pass combo login attemp");
 #endif
         	ret = CAS_login(&cas, user, pw);
 	}
