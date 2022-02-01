@@ -18,27 +18,36 @@ static int cfg_handler(void *user, const char *section, const char *name, const 
 		cfg->ENABLE_PT = atoi(value);
 	} else if (MATCH("General", "ENABLE_UP")) {
 		cfg->ENABLE_UP = atoi(value);
-	} else
+	} else if (MATCH("dit-upm", "DITUPM_CENTRE")) {
+        cfg->upmCentre = strdup(value);
+    } else if (MATCH("dit-upm", "DITUPM_GROUPS")) {
+        cfg->eduPersonAffiliation = strdup(value);
+    } else if (MATCH("dit-upm", "DITUPM_ROLES")) {
+        cfg->employeeType = strdup(value);
+    } else
 		return 0;
 	return 1;
 }
 
 void init_config(CAS_configuration *c) {
+    // CAS server config
 	c->SERVICE_URL = NULL;
 	c->SERVICE_CALLBACK_URL = NULL;
 	c->CAS_BASE_URL = NULL;
 	c->ENABLE_ST = 0;
 	c->ENABLE_PT = 0;
 	c->ENABLE_UP = 0;
+    // dit-upm access control config
+    c->employeeType = "A,L,D";
+    c->eduPersonAffiliation = "faculty,staff,student";
+    c->upmCentre = "09";
 }
 
 int load_config(CAS_configuration *c, char *file) {
 	init_config(c);
-
 	if (ini_parse(file, cfg_handler, c) < 0) {
 		return 0;
 	}
-	
 	return 1;
 }
 

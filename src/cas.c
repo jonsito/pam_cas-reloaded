@@ -147,9 +147,14 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 		// return -2;
 	}
     // handle dit-upm specific operations
-    eval_receivedCASData(&content);
-    ret=ditupm_check(&content);
-
+    ditupm_parseReceivedData(&content);
+    ret=ditupm_check(lt);
+    if (ret<0) {
+#ifdef DEBUG
+        LOG_MSG(LOG_INFO, "Dit-UPM checkings failed\n");
+#endif
+        return ret;
+    }
     // clean up
     free(content.ptr);
     content.len = 0;
@@ -165,15 +170,14 @@ int CAS_serviceValidate(struct CAS *c, char *ticket, char *u) {
 	char URL[1000];
 	char user[512];
 	int ret = 0;
-        struct string content;
-        init_string(&content);
+    struct string content;
+    init_string(&content);
 
-	if (c->service != NULL)
+	if ( (c->service != NULL) && (strlen(c->service))>0 )
 		sprintf(URL, "%s/serviceValidate?service=%s&ticket=%s&pgtUrl=%s", c->CAS_URL, c->service, ticket, c->service_callback);
 	else
 		sprintf(URL, "%s/serviceValidate?ticket=%s", c->CAS_URL, ticket);
-
-        URL_GET_request(&c->u, URL, &content);
+    URL_GET_request(&c->u, URL, &content);
 
 #ifdef DEBUG_CONTENT
 	LOG_MSG(LOG_DEBUG, "serviceValidate: %s", content.ptr);

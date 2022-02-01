@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="365e96c0-cd8e-4ff1-a2db-53a320ac83b7" name="l128 virtual test machine" url="http:///">
+        <fileTransfer rootFolder="/home/cdc" accessType="SFTP" host="l128.lab.dit.upm.es" port="22" sshConfigId="789c5b9a-def7-4260-8420-7729268cde6a" sshConfig="cdc@l128.lab.dit.upm.es:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

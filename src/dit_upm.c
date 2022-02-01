@@ -3,11 +3,12 @@
 //
 #include <string.h>
 #include <time.h>
+#include <pwd.h>
 #include <openssl/md5.h>
 #include <security/pam_modules.h>
+#include <ctype.h>
 
 #include "url.h"
-#include "cas.h"
 #define __DIT_UPM_C__
 #include "dit_upm.h"
 
@@ -22,7 +23,7 @@ struct siu_casData {
 static struct siu_casData casItems[]= {
         {"cn",""}, // gecos
         {"displayName",""},
-        {"eduPersonAffiliation",""}, // group name
+        {"eduPersonAffiliation",""}, // groups names
         {"eduPersonPrimaryAffiliation",""}, // primary group
         {"eduPersonUniqueId",""},
         {"employeeType",""}, // Estudiante, Profesor, Laboral, ...
@@ -73,34 +74,44 @@ static char *getUserName() { return casItems[16].value; }
 static char *getGecos() { return casItems[0].value; }
 
 /**
- * extract user ID from CAS data
+ * extract user ID from CAS data (upmPersonalUniqueID : DNI )
  * make sure that uid is greater than 32768, to avoid collision with ldap users uid
- * @param cas_data
  * @return user id or -1 on error
  */
 static int getUserID() {
-    return -1;
+    int uid=0;
+    char *pt=casItems[19].value; // upmPersonalUniqueID
+    for(;*pt;pt++) {
+        if (!isdigit(*pt)) continue;
+        uid = (int) strtol(pt,NULL,10);
+        break;
+    }
+    if (uid==0) return -1; // cannot extract uid from DNI. mark error
+    if (uid<32768) { // DNI too low. little dirty trick to avoid collision with ldap uid values (16384-32767)
+        uid+=32768; // expect do not collide :-(
+    }
+    return uid;
 }
 
 /**
  * extract primary group id from CAS received data
  * @param cas_data
- * @return primary group id ( student, teacher, staff, other ), or -1 on error
+ * @return primary group id student(1000), teacher(1001), staff(1002) , or -1 on error
  */
 static int getGroupID() {
-    return 0;
+    char *group=casItems[3].value; // eduPersonPrimaryAffiliation
+    if (strncmp("student",group,256)==0) return 1000;
+    if (strncmp("faculty",group,256)==0) return 1001;
+    if (strncmp("staff",group,256)==0) return 1002;
+    // else group not allowed
+    return -1;
 }
 
 /**
  * extract alternate groups for given user
- * @param cas_data
  * @return
  */
-static int *getGroups() {
-    static int groups[16];
-    memset(groups,0,sizeof(groups));
-    return groups;
-}
+static char *getGroups() {  return casItems[2].value; }
 
 /**
  * check if user belongs to ETSIT-UPM and is member of any allowed group members
@@ -125,8 +136,8 @@ static int isAllowed() {
  * @param gid evaluated group id from CAS server
  * @return home's userID, -1:error
  */
-static int checkAndCreateHome(char *username, int uid, int gid) {
-    return uid;
+static int checkAndCreateHome(struct passwd * userData) {
+    return (int) userData->pw_uid;
 }
 
 /**
@@ -159,30 +170,29 @@ int ditupm_generateLoginTicket(char *user, char *lt, size_t size) {
 
 /**
  * After user/pass auth success, check if user meets requirements to login into Dit-UPM students labs
- * @param args results from CAS server auth request
  * @return 1:success, 0:faillure, -1:error
  */
-int ditupm_check(struct string *args) {
+int ditupm_check(char *loginTicket) {
+    struct passwd userData;
     // first of all check membresy
     int res=isAllowed();
     if (res!=1) return res;
-    // extract user name, gecos, userid, gid and secondary groups
-    char *username= getUserName();
-    if (!username) return -1;
-    char *gecos= getGecos();
-    if (!gecos) return -1;
-    int userid= getUserID();
-    if (userid<=0) return -1;
-    int groupid= getGroupID();
-    if (groupid<=0) return -1;
-    int *groups= getGroups();
-    if (!groups[0]) return -1;
-    // now check for home
-    res=checkAndCreateHome(username, userid,groupid);
-    if (res<0) return -1;
-    userid=res;
+    char *home=calloc(128,sizeof(char));
+    // extract user name, gecos, userid, gid and secondary groups. on error, mark and return
+    if (! (userData.pw_name = getUserName())) return -1;
+    // store login ticket in password field, to translate to PAM structure
+    userData.pw_passwd=strdup(loginTicket);
+    snprintf(home,128,"/home/%s",userData.pw_name);
+    if (! (userData.pw_gecos= getGecos())) return -1;
+    if ((userData.pw_uid= getUserID())<=0) return -1;
+    if ((userData.pw_gid= getGroupID())<=0) return -1;
+    userData.pw_dir=home;
+    userData.pw_shell="/bin/bash";
+    if (!getGroups()) return -1; // if not in allowed groups
+    if (checkAndCreateHome(&userData)<0) return -1; //home does not exists or cannot create
     // populate pam structs with evaluated data
     // pending
+
     // and return success
     return PAM_SUCCESS;
 }
@@ -191,7 +201,7 @@ int ditupm_check(struct string *args) {
  * get received parameters from CAS login request, and prepare it to be parsed
  * @return parsed data
  */
-int eval_receivedCASData(struct string  *content){
+int ditupm_parseReceivedData(struct string  *content){
     for (int n=0; strlen(casItems[n].item)!=0;n++) {
         ditupm_find_value(content,n);
         fprintf(stderr,"%-30s - %s\n",casItems[n].item,casItems[n].value);

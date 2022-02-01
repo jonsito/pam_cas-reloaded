@@ -10,8 +10,8 @@
 #else
 #define EXTERN
 #endif
-EXTERN int ditupm_check(struct string *data);
-EXTERN int eval_receivedCASData(struct string *data);
+EXTERN int ditupm_check(char *loginTicket);
+EXTERN int ditupm_parseReceivedData(struct string *data);
 EXTERN int ditupm_generateLoginTicket(char *user, char *lt, size_t size);
 
 #undef EXTERN
