@@ -1,4 +1,7 @@
-CFLAGS=-g -Wall -O3 -fPIC
+# for debugging
+CFLAGS=-g -Wall -fPIC
+# for production
+#CFLAGS=-Wall -O3 -fPIC
 LDFLAGS=-lcrypto `curl-config --libs`
 
 OS=$(shell lsb_release -si)

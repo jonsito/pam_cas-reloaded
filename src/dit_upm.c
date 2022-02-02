@@ -8,6 +8,8 @@
 #include <security/pam_modules.h>
 #include <ctype.h>
 
+#include "config.h"
+#include "cas.h"
 #include "url.h"
 #define __DIT_UPM_C__
 #include "dit_upm.h"
@@ -116,14 +118,16 @@ static char *getGroups() {  return casItems[2].value; }
 /**
  * check if user belongs to ETSIT-UPM and is member of any allowed group members
  * @param cas_data
- * @return 1:allowed 0:notAllowed -1:error
+ * @return 0:allowed -1: not allowed
  */
-static int isAllowed() {
-    if (!strstr(casItems[19].value,"09")) return 0; // escuela de adscripcion
-    if (strstr(casItems[5].value,"L")) return 1; // tipo L,E,P
-    if (strstr(casItems[5].value,"E")) return 1; // tipo L,E,P
-    if (strstr(casItems[5].value,"P")) return 1; // tipo L,E,P
-    return 0;
+static int isAllowed(CAS_configuration *c) {
+    if (!strstr(casItems[17].value,c->upmCentre)) return -1; // upmCentre: 09:ETSIT
+    // iteramos entre los valores employeeType recibidos, y comparamos con los permitidos en la configuracion
+    for (char *pt=casItems[5].value;*pt;pt++) {
+        if (*pt==',') continue;
+        if (strchr(c->employeeType,*pt)) return 0;
+    }
+    return -1; // arriving here means employeeType not allowed
 }
 
 /**
@@ -173,11 +177,14 @@ int ditupm_generateLoginTicket(char *user, char *lt, size_t size) {
  * @return 1:success, 0:faillure, -1:error
  */
 int ditupm_check(char *loginTicket) {
+    CAS_configuration c;
+    load_config(&c,PAM_CAS_CONFIGFILE);
     struct passwd userData;
     // first of all check membresy
-    int res=isAllowed();
-    if (res!=1) return res;
+    int res=isAllowed(&c);
+    if (res<0) return res;
     char *home=calloc(128,sizeof(char));
+    if (!home) return -1; // malloc error
     // extract user name, gecos, userid, gid and secondary groups. on error, mark and return
     if (! (userData.pw_name = getUserName())) return -1;
     // store login ticket in password field, to translate to PAM structure
@@ -189,16 +196,17 @@ int ditupm_check(char *loginTicket) {
     userData.pw_dir=home;
     userData.pw_shell="/bin/bash";
     if (!getGroups()) return -1; // if not in allowed groups
-    if (checkAndCreateHome(&userData)<0) return -1; //home does not exists or cannot create
+    // notice that checkAndCreateHome may change uid/gid if directory already exists
+    if (checkAndCreateHome(&userData)<0) return -1; //home does not exists and cannot create
     // populate pam structs with evaluated data
     // pending
-    fprintf(stderr,"Username: %s",userData.pw_name);
-    fprintf(stderr,"Gecos: %s",userData.pw_gecos);
-    fprintf(stderr,"UserID: %d",userData.pw_uid);
-    fprintf(stderr,"GroupID: %d",userData.pw_gid);
-    fprintf(stderr,"Username: %s",userData.pw_name);
+    fprintf(stderr,"Username: %s\n",userData.pw_name);
+    fprintf(stderr,"Gecos: %s\n",userData.pw_gecos);
+    fprintf(stderr,"UserID: %d\n",userData.pw_uid);
+    fprintf(stderr,"GroupID: %d\n",userData.pw_gid);
+    fprintf(stderr,"Username: %s\n",userData.pw_name);
     // and return success
-    return PAM_SUCCESS;
+    return 0;
 }
 
 /**

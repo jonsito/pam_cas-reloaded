@@ -153,8 +153,8 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
     // clean up
     free(content.ptr);
     content.len = 0;
-    log_msg(LOG_INFO,"Cas_Login():%s",(ret>0)?"succeeded":"failed");
-	return 0; // success
+    log_msg(LOG_INFO,"Cas_Login():%s",(ret>=0)?"succeeded":"failed");
+	return ret; // success
 }
 
 /**
