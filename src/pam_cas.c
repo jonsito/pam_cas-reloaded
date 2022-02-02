@@ -12,7 +12,6 @@ Changelog:
 */
 
 // CONFIGURATION
-#define CAS_DEBUG 1
 #define MIN_TICKET_LEN 20
 
 // Support authentication against CAS
@@ -58,9 +57,7 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
 		return PAM_AUTH_ERR;
 	}
 
-#ifdef CAS_DEBUG
-//	LOG_MSG(LOG_NOTICE, "Got user: %s pass: %s\n", user, pw);
-#endif
+    //	log_msg(LOG_NOTICE, "Got user: %s pass: %s\n", user, pw);
 
         ret = load_config(&c, PAM_CAS_CONFIGFILE);
         if (!ret) {
@@ -72,40 +69,25 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
 	CAS_init(&cas, c.CAS_BASE_URL, c.SERVICE_URL, c.SERVICE_CALLBACK_URL);
 
 	if (c.ENABLE_ST && strncmp(pw, "ST-", 3) == 0 && strlen(pw) > MIN_TICKET_LEN) { // Possibly serviceTicket?
-#ifdef CAS_DEBUG
-		LOG_MSG(LOG_INFO, "serviceTicket found. Doing serviceTicket validation!");
-#endif
+    log_msg(LOG_INFO, "serviceTicket found. Doing serviceTicket validation!");
 		ret = CAS_serviceValidate(&cas, pw, user);		
-	} else if (c.ENABLE_PT && strncmp(pw, "PT-", 3) == 0 && strlen(pw) > MIN_TICKET_LEN) { // Possibly a proxyTicket?
-#ifdef CAS_DEBUG
-		LOG_MSG(LOG_INFO, "proxyTicket found. Doing proxyTicket validation!");
-#endif
+	} else if (c.ENABLE_PT && strncmp(pw, "PT-", 3) == 0 && strlen(pw) > MIN_TICKET_LEN) {
+        // Possibly a proxyTicket?
+        log_msg(LOG_INFO, "proxyTicket found. Doing proxyTicket validation!");
 		ret = CAS_proxyValidate(&cas, pw, user);
-	} else if (c.ENABLE_PT && strncmp(pw, "PGT-",4) == 0 && strlen(pw) > MIN_TICKET_LEN) { // Possibly a proxy granting ticket
-#ifdef CAS_DEBUG
-		LOG_MSG(LOG_INFO, "pgTicket found. Doing proxy-ing and proxyTicket validation!");
+	} else if (c.ENABLE_PT && strncmp(pw, "PGT-",4) == 0 && strlen(pw) > MIN_TICKET_LEN) {
+        // Possibly a proxy granting ticket
+		log_msg(LOG_INFO, "pgTicket found. Doing proxy-ing and proxyTicket validation!");
 		ret = CAS_proxy(&cas, pw, user);
-#endif
 	} else if (c.ENABLE_UP) {
-#ifdef CAS_DEBUG
-		LOG_MSG(LOG_INFO, "user+pass combo login attemp");
-#endif
-        	ret = CAS_login(&cas, user, pw);
+		log_msg(LOG_INFO, "user+pass combo login attemp");
+        ret = CAS_login(&cas, user, pw);
 	}
 
-#ifdef CAS_DEBUG
-	if (ret > 0)
-                LOG_MSG(LOG_INFO, "CAS user %s logged in successfully! ret: %d", user, ret);
-        else
-                LOG_MSG(LOG_INFO, "Failed to authenticate CAS user %s. ret: %d", user, ret);
-#endif
-
-
-        CAS_cleanup(&cas);
-	
-	if (ret > 0)
-		return PAM_SUCCESS;
-
+	if (ret > 0) log_msg(LOG_INFO, "CAS user %s logged in successfully! ret: %d", user, ret);
+    else log_msg(LOG_INFO, "Failed to authenticate CAS user %s. ret: %d", user, ret);
+    CAS_cleanup(&cas);
+	if (ret > 0) return PAM_SUCCESS;
 	return PAM_AUTH_ERR;
 }
 

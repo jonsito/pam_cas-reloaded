@@ -59,8 +59,9 @@ int CAS_find_pgt(struct string *s, char *pt, int size) {
 
 int CAS_login(struct CAS *c, char *uname, char *pass) {
 	char URL[1000];
-	char lt[1024];
-	char sess[2048];
+	char lt[1024]; // login ticket
+    char st[1024]; // service ticket
+	char sess[2048]; // session ticket
 	char execution[2048]; // siu.upm.es returns about "1500" bytes on execution parameter
 	int ret = 0;
 	//int ret2 = 0;
@@ -73,10 +74,8 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 		sprintf(URL, "%s/login", c->CAS_URL);	
 
 	URL_GET_request(&c->u, URL, &content);
+    log_content(LOG_DEBUG, "get done, return from get: %s\n", content.ptr);
 
-#ifdef DEBUG_CONTENT
-	LOG_MSG(LOG_DEBUG, "get done, return from get: %s\n", content.ptr);
-#endif
     // cas protocol states that login ticket is optional
     // so try to extract from server data.
     // if no login ticket provided generate unique one
@@ -85,26 +84,18 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 	CAS_find_session(&content, sess, sizeof(sess));
 	CAS_find_execution(&content, execution, sizeof(execution));
 
-#ifdef DEBUG
-		LOG_MSG(LOG_INFO, "got session: %s\n", sess);
-		LOG_MSG(LOG_INFO, "got execution: %s\n", execution);
-#endif
+	log_msg(LOG_INFO, "got session: %s\n", sess);
+	log_msg(LOG_INFO, "got execution: %s\n", execution);
 
 	free(content.ptr);
 	content.len = 0;
 
 	if (!ret) {
-#ifdef DEBUG
-		LOG_MSG(LOG_INFO, "Could not get login ticket!\n");
-#endif
+        log_msg(LOG_INFO, "Could not get login ticket!\n");
 		return -1;
-	}
-
-#ifdef DEBUG
-	LOG_MSG(LOG_INFO, "LoginTicket: %s\n", lt);
-	LOG_MSG(LOG_INFO, "Using service: %s\n", c->service);
-#endif
-
+    }
+	log_msg(LOG_INFO, "LoginTicket: %s\n", lt);
+	log_msg(LOG_INFO, "Using service: %s\n", c->service);
 	init_string(&content);
 
     /*
@@ -117,8 +108,7 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 
 	URL_add_form(&c->u, "username", uname);
 	URL_add_form(&c->u, "password", pass);
-    // seems that siu.upm.es does not handle login ticket
-	// URL_add_form(&c->u, "lt", lt);
+	URL_add_form(&c->u, "lt", lt);
 	URL_add_form(&c->u, "execution", execution);
 	URL_add_form(&c->u, "_eventId", "submit");
     // do not submit "submit button :-)
@@ -129,40 +119,40 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
 	if ( (c->service) && (strlen(c->service)>0))
 		URL_add_form(&c->u, "service", c->service);
 
-#ifdef DEBUG
-		LOG_MSG(LOG_INFO, "doing post for user: %s\n", uname);
-		LOG_MSG(LOG_INFO, "with lt: %s\n", lt);
-#endif
-	URL_POST_request(&c->u, URL, &content); 
-#ifdef DEBUG_CONTENT
-	LOG_MSG(LOG_DEBUG, "post done, return from post: %s\n", content.ptr);
-#endif
-    // siu.upm.es does not report service ticket as response, but as cookie
-    // so this item may fail
-	ret = CAS_find_serviceticket(&content, lt, 512);
-	if (!ret) {
-#ifdef DEBUG
-		LOG_MSG(LOG_INFO, "Could not get service ticket!\n");
-#endif
-		// return -2;
-	}
-    // handle dit-upm specific operations
-    ditupm_parseReceivedData(&content);
-    ret=ditupm_check(lt);
-    if (ret<0) {
-#ifdef DEBUG
-        LOG_MSG(LOG_INFO, "Dit-UPM checkings failed\n");
-#endif
-        return ret;
+	log_msg(LOG_INFO, "Sending post for user/pass authentication: %s\n", uname);
+	log_msg(LOG_INFO, "with lt: %s\n", lt);
+	URL_POST_request(&c->u, URL, &content);
+	log_content(LOG_DEBUG, "post done, return from post: %s\n", content.ptr);
+
+    // When no service is provided, siu.upm.es does not provide
+    // neither service ticket nor redirection to service server.
+    // so this call may fail
+    if((c->service) && (strlen(c->service)>0) ) {
+        memset(st,0,sizeof(st));
+        ret = CAS_find_serviceticket(&content, st, sizeof(st));
+        if (!ret) {
+            log_msg(LOG_INFO, "Could not get service ticket!\n");
+            return -2;
+        }
+    } else {
+        // when no service provided, siu.upm.es just shows a page with auth info. So parse it
+        ditupm_parseReceivedData(&content);
+        ret=ditupm_check(lt);
+        if (ret<0) {
+            log_msg(LOG_INFO, "Dit-UPM checkings failed\n");
+            return ret;
+        }
     }
     // clean up
     free(content.ptr);
     content.len = 0;
-#ifdef DEBUG
-	LOG_MSG(LOG_INFO, "Successfully logged in!\n");
-#endif
+	log_msg(LOG_INFO, "Successfully logged in!\n");
+    // if service provided, use received service ticket to validate service
+    // and parse received xml to retrieve ditupm atributes
+    if (strlen(lt)!=0) {
+        ret = CAS_serviceValidate(c, lt, uname);
+    }
 
-	ret = CAS_serviceValidate(c, lt, uname);
 	return ret;
 }
 
@@ -178,10 +168,7 @@ int CAS_serviceValidate(struct CAS *c, char *ticket, char *u) {
 	else
 		sprintf(URL, "%s/serviceValidate?ticket=%s", c->CAS_URL, ticket);
     URL_GET_request(&c->u, URL, &content);
-
-#ifdef DEBUG_CONTENT
-	LOG_MSG(LOG_DEBUG, "serviceValidate: %s", content.ptr);
-#endif	
+	log_content(LOG_DEBUG, "serviceValidate: %s", content.ptr);
 
 
 	ret = CAS_find_user(&content, user, 512);
@@ -208,15 +195,9 @@ int CAS_proxy(struct CAS *c, char *pgt, char *u) {
 	sprintf(URL, "%s/proxy?targetService=%s&pgt=%s", c->CAS_URL, c->service, pgt);
 	
 	URL_GET_request(&c->u, URL, &content);
-
-#ifdef DEBUG_CONTENT
-	LOG_MSG(LOG_DEBUG, "PGT: %s", content.ptr);	
-#endif
-	
+	log_content(LOG_DEBUG, "PGT: %s", content.ptr);
 	ret = CAS_find_pgt(&content, pt, 512);
-#ifdef DEBUG
-	LOG_MSG(LOG_INFO, "ProxyTicket: %s", pt);
-#endif
+	log_msg(LOG_INFO, "ProxyTicket: %s", pt);
 
 	if (ret) {
 		if (pt != NULL) {
@@ -241,10 +222,7 @@ int CAS_proxyValidate(struct CAS *c, char *ticket, char *u) {
                 sprintf(URL, "%s/proxyValidate?ticket=%s", c->CAS_URL, ticket);
 
         URL_GET_request(&c->u, URL, &content);
-
-#ifdef DEBUG_CONTENT
-	LOG_MSG(LOG_DEBUG, "proxyValidate: %s", content.ptr);
-#endif
+	    log_content(LOG_DEBUG, "proxyValidate: %s", content.ptr);
 
         ret = CAS_find_user(&content, user, 512);
         if (ret) {

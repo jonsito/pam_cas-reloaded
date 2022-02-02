@@ -2,6 +2,17 @@
 
 //#define URL_DEBUG 1
 
+void log_msg(int type,char *format,...) {
+#ifdef DEBUG
+    syslog(type, "%s:%d: " FORMAT, __FILE__, __LINE__, ##__VA_ARGS__);
+#endif
+}
+
+void log_content(int type, char *format,...) {
+#ifdef DEBUG_CONTENT
+    syslog(type, "%s:%d: " FORMAT, __FILE__, __LINE__, ##__VA_ARGS__);
+#endif
+}
 void init_string(struct string *s) {
 	s->len = 0;
 	s->ptr = malloc(s->len+1);
@@ -44,9 +55,7 @@ size_t URL_writefunc(void *ptr, size_t size, size_t nmemb, struct string *s) {
 
 int URL_GET_request(struct URL_Request *u, char *url, struct string *out) {
 	int len = 0;
-#ifdef URL_DEBUG
-	LOG_MSG(LOG_INFO, "GET URL: %s\n", url);
-#endif
+    log_msg(LOG_INFO, "GET URL: %s\n", url);
 	
 	curl_easy_setopt(u->curl, CURLOPT_URL, url);
 	curl_easy_setopt(u->curl, CURLOPT_WRITEFUNCTION, URL_writefunc);
@@ -70,12 +79,9 @@ int URL_GET_request(struct URL_Request *u, char *url, struct string *out) {
 }
 
 int URL_POST_request(struct URL_Request *u, char *url, struct string *out) {
-        int len = 0;
-        curl_easy_setopt(u->curl, CURLOPT_URL, url);
-
-#ifdef URL_DEBUG
-	LOG_MSG(LOG_INFO, "POST URL: %s\n", url);
-#endif
+    int len = 0;
+    curl_easy_setopt(u->curl, CURLOPT_URL, url);
+    log_msg(LOG_INFO, "POST URL: %s\n", url);
 
 	if (u->formpost != NULL) {
         // siu.upm.es does not uses multipart post, just urlencoded body

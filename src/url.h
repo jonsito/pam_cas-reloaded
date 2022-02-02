@@ -7,13 +7,6 @@
 #include <string.h>
 #include <syslog.h>
 
-
-#ifndef LOG_MSG
-// Lets do some syslogging
-#define LOG_MSG(DEST, FORMAT, ...) \
-        syslog(DEST, "%s:%d: " FORMAT, __FILE__, __LINE__, ##__VA_ARGS__)
-#endif
-
 #ifndef PAM_CAS_COOKIESFILE
 #define PAM_CAS_COOKIESFILE "/var/run/pam_cas.cookies"
 #endif
@@ -31,6 +24,8 @@ struct URL_Request {
 	struct curl_slist *headerlist;
 };
 
+void log_msg(int type, char * format,...);
+void log_content(int type, char * format,...);
 void URL_init(struct URL_Request *u);
 void init_string(struct string *s);
 void URL_add_form(struct URL_Request *u, char *name, char *val);
