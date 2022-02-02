@@ -31,41 +31,40 @@ Changelog:
 int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char **argv) {
 	
 	char *user, *pw;
-        struct CAS cas;
+    struct CAS cas;
 	CAS_configuration c;
-        int ret = 0;
+    int ret = 0;
 
 	if (pam_get_user(pamhandle, (const char**)&user, NULL) != PAM_SUCCESS) {
-		LOG_MSG(LOG_ERR, "User does not exist!");
+		log_msg(LOG_ERR, "User does not exist!");
 		return PAM_AUTH_ERR;
 	}
 
 	if (pam_get_item(pamhandle, PAM_OLDAUTHTOK, (const void**)&pw)  != PAM_SUCCESS) {
-		LOG_MSG(LOG_ERR, "Cannot get the password!");
+		log_msg(LOG_ERR, "Cannot get the password!");
 		return PAM_AUTH_ERR;
 	}
 
 	if (pw == NULL) {
 		if (pam_get_item(pamhandle, PAM_AUTHTOK, (const void**)&pw) != PAM_SUCCESS) {
-			LOG_MSG(LOG_ERR, "Cannot get  the password 2!");
+			log_msg(LOG_ERR, "Cannot get  the password 2!");
 			return PAM_AUTH_ERR;
 		}
 	}
 
 	if (pw == NULL) {
-		LOG_MSG(LOG_ERR, "Did not get password, check the PAM configuration!");
+        log_msg(LOG_ERR, "Did not get password, check the PAM configuration!");
 		return PAM_AUTH_ERR;
 	}
 
     //	log_msg(LOG_NOTICE, "Got user: %s pass: %s\n", user, pw);
-
-        ret = load_config(&c, PAM_CAS_CONFIGFILE);
-        if (!ret) {
-                LOG_MSG(LOG_ERR,  "Failed to load configuration at %s!", PAM_CAS_CONFIGFILE);
-                return PAM_AUTH_ERR;
-        }
+    ret = load_config(&c, PAM_CAS_CONFIGFILE);
+    if (!ret) {
+        log_msg(LOG_ERR,  "Failed to load configuration at %s!", PAM_CAS_CONFIGFILE);
+        return PAM_AUTH_ERR;
+    }
     // JAMC 20220130 from cluck's fork security patch
-    ret = 0;
+    ret = -1; // mark error by default
 	CAS_init(&cas, c.CAS_BASE_URL, c.SERVICE_URL, c.SERVICE_CALLBACK_URL);
 
 	if (c.ENABLE_ST && strncmp(pw, "ST-", 3) == 0 && strlen(pw) > MIN_TICKET_LEN) { // Possibly serviceTicket?
@@ -84,11 +83,14 @@ int pam_sm_authenticate(pam_handle_t *pamhandle, int flags, int arg, const char 
         ret = CAS_login(&cas, user, pw);
 	}
 
-	if (ret > 0) log_msg(LOG_INFO, "CAS user %s logged in successfully! ret: %d", user, ret);
-    else log_msg(LOG_INFO, "Failed to authenticate CAS user %s. ret: %d", user, ret);
     CAS_cleanup(&cas);
-	if (ret > 0) return PAM_SUCCESS;
-	return PAM_AUTH_ERR;
+	if (ret >= 0) {
+        log_msg(LOG_INFO, "CAS user %s logged in successfully! ret: %d", user, ret);
+        return PAM_SUCCESS;
+    } else {
+        log_msg(LOG_INFO, "Failed to authenticate CAS user %s. ret: %d", user, ret);
+        return PAM_AUTH_ERR;
+    }
 }
 
 int pam_sm_setcred(pam_handle_t *pamhandle, int flags, int argc, const char **argv) {

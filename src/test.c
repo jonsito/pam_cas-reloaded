@@ -67,8 +67,7 @@ int main(int argc, char **argv) {
 	CAS_init(&cas, c.CAS_BASE_URL, c.SERVICE_URL, c.SERVICE_CALLBACK_URL);
 	// Attempt a full login with user/pass
 	ret = CAS_login(&cas, username, password);
-	// Ret > 1 means we are authenticated 
-	if (ret > 0)
+	if (ret >= 0)
 		printf("We are now authenticated!\n");
 	else
 		printf("Failed to authenticate!\n");

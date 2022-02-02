@@ -23,16 +23,13 @@ int main(int argv, char **argc) {
 	printf("Enable proxyValidate = %d\n", c.ENABLE_PT);
 	printf("Enable user+pass = %d\n", c.ENABLE_UP);
 
-
 	// Initialize the CAS backend
 	CAS_init(&cas, c.CAS_BASE_URL, c.SERVICE_URL, c.SERVICE_CALLBACK_URL);
 
-
 	ret = CAS_proxy(&cas, "PGT-xxxxxxxxxx-xxxxxxxx", "myuser");
 
-
 	// Ret > 1 means we are authenticated 
-	if (ret > 0)
+	if (ret >= 0)
 		printf("We are now authenticated!\n");
 	else
 		printf("Failed to authenticate!\n");

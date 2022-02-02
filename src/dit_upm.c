@@ -192,7 +192,11 @@ int ditupm_check(char *loginTicket) {
     if (checkAndCreateHome(&userData)<0) return -1; //home does not exists or cannot create
     // populate pam structs with evaluated data
     // pending
-
+    fprintf(stderr,"Username: %s",userData.pw_name);
+    fprintf(stderr,"Gecos: %s",userData.pw_gecos);
+    fprintf(stderr,"UserID: %d",userData.pw_uid);
+    fprintf(stderr,"GroupID: %d",userData.pw_gid);
+    fprintf(stderr,"Username: %s",userData.pw_name);
     // and return success
     return PAM_SUCCESS;
 }
@@ -204,7 +208,7 @@ int ditupm_check(char *loginTicket) {
 int ditupm_parseReceivedData(struct string  *content){
     for (int n=0; strlen(casItems[n].item)!=0;n++) {
         ditupm_find_value(content,n);
-        fprintf(stderr,"%-30s - %s\n",casItems[n].item,casItems[n].value);
+        // fprintf(stderr,"%-28s - %s\n",casItems[n].item,casItems[n].value);
     }
     return 0;
 }

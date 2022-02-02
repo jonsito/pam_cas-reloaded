@@ -25,11 +25,11 @@ int CAS_find_part(struct string *s, char *startmatch, char endchar, char *dest, 
 		if ((ep-sp) < dstsize) {
 			*dest = '\0';
 			strncat(dest, sp, ep-sp);
-			return 1;
+			return 0; // success
 		}
-		return -1;
+		return -2; // found string does not fit
 	}
-	return 0;
+	return -1; // not found
 }
 
 int CAS_find_loginticket(struct string *s, char *ticket, int size) {
@@ -62,7 +62,7 @@ int CAS_find_pgt(struct string *s, char *pt, int size) {
  * @param c CAS struct info
  * @param uname username
  * @param pass password
- * @return >0 on success; else failure
+ * @return >=0 success; <0 fail
  */
 int CAS_login(struct CAS *c, char *uname, char *pass) {
 	char URL[1000];
@@ -70,7 +70,7 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
     char st[1024]; // service ticket
 	char sess[2048]; // session ticket
 	char execution[2048]; // siu.upm.es returns about "1500" bytes on execution parameter
-	int ret; // ret<=0: fail - ret>0: success
+	int ret; // >=0 success; <0 fail
 	struct string content;
 	init_string(&content);
 	
@@ -86,9 +86,9 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
     // so try to extract from server data.
     // if no login ticket provided generate unique one
 	ret = CAS_find_loginticket(&content, lt, sizeof(lt));
-    if (!ret) {
+    if (ret<0) {
         log_msg(LOG_INFO, "Could not get login ticket. Generate my own\n");
-        ret = ditupm_generateLoginTicket(uname, lt, sizeof(lt));
+        ditupm_generateLoginTicket(uname, lt, sizeof(lt));
     }
 	CAS_find_session(&content, sess, sizeof(sess));
 	CAS_find_execution(&content, execution, sizeof(execution));
@@ -134,9 +134,9 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
         // service declared, try to get and validate serviceTicket
         memset(st,0,sizeof(st));
         ret = CAS_find_serviceticket(&content, st, sizeof(st));
-        if (!ret) {
+        if (ret<0) {
             log_msg(LOG_INFO, "Could not get service ticket!\n");
-            return -2;
+            return ret;
         }
         // service Validate also call to ditupm parse received XML attributes
         ret = CAS_serviceValidate(c, st, uname);
@@ -154,7 +154,7 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
     free(content.ptr);
     content.len = 0;
     log_msg(LOG_INFO,"Cas_Login():%s",(ret>0)?"succeeded":"failed");
-	return ret;
+	return 0; // success
 }
 
 /**
@@ -163,13 +163,14 @@ int CAS_login(struct CAS *c, char *uname, char *pass) {
  * @param c Cas structure
  * @param ticket ST-XXX service ticket
  * @param u username. Used to perform xml validation
- * @return
+ * @return >=0 success <0 error
  */
 int CAS_serviceValidate(struct CAS *c, char *ticket, char *u) {
 	char URL[1000];
 	char user[512];
-	int ret = 0;
+	int ret;
     struct string content;
+    if (!u) return -1; // no user to search for provided !!
     init_string(&content);
     // if provided, add service proxy ticket callback to url parameters
 	if ( (c->service_callback != NULL) && (strlen(c->service_callback))>0 )
@@ -179,21 +180,20 @@ int CAS_serviceValidate(struct CAS *c, char *ticket, char *u) {
     URL_GET_request(&c->u, URL, &content);
 	log_content(LOG_DEBUG, "serviceValidate: %s", content.ptr);
 
+    memset(user,0,sizeof(user));
 	ret = CAS_find_user(&content, user, sizeof(user));
-	if (ret) {
-		if (u != NULL) { // User comparison, strictly speaking not needed, but better be safe than sorry
-			if (strncmp(user, u, strlen(user)) == 0)	ret = 1; // user match
-			else ret = 0; // user does not mach
-		} else 	ret = 2; // cannot find user in received XML
+	if ((ret>=0) && (strlen(user)>0) ) {
+		if (strncmp(user, u, strlen(user)) == 0)	ret = 0; // user match
+		else ret = -2; // user does not mach
 	} 
 	free(content.ptr);
-	return ret;
+	return ret; // user field not found in XML received data
 }
 
 int CAS_proxy(struct CAS *c, char *pgt, char *u) {
 	char URL[1000];
-	char pt[512];
-	int ret = 0;
+	char pt[512]; // proxy ticket
+	int ret;
 	struct string content;
 	init_string(&content);
 
@@ -201,51 +201,42 @@ int CAS_proxy(struct CAS *c, char *pgt, char *u) {
 	
 	URL_GET_request(&c->u, URL, &content);
 	log_content(LOG_DEBUG, "PGT: %s", content.ptr);
-	ret = CAS_find_pgt(&content, pt, 512);
+    memset(pt,0,sizeof(pt));
+	ret = CAS_find_pgt(&content, pt, sizeof(pt));
 	log_msg(LOG_INFO, "ProxyTicket: %s", pt);
 
-	if (ret) {
-		if (pt != NULL) {
-			ret = CAS_proxyValidate(c, pt, u);
-		} else 
-			ret = 2;
-	}
+    if( (ret>=0) && (strlen(pt)>0) ) ret = CAS_proxyValidate(c, pt, u);
 	free(content.ptr);
 	return ret;
 }
 
 int CAS_proxyValidate(struct CAS *c, char *ticket, char *u) {
-        char URL[1000];
-        char user[512];
-        int ret = 0;
-        struct string content;
-        init_string(&content);
+    char URL[1000];
+    char user[512];
+    int ret;
+    struct string content;
+    if (!u) return -1; // user not provided
+    init_string(&content);
+    if ( (c->service != NULL) && (strlen(c->service)>0))
+         sprintf(URL, "%s/proxyValidate?service=%s&ticket=%s", c->CAS_URL, c->service, ticket);
+    else sprintf(URL, "%s/proxyValidate?ticket=%s", c->CAS_URL, ticket);
 
-        if (c->service != NULL)
-                sprintf(URL, "%s/proxyValidate?service=%s&ticket=%s", c->CAS_URL, c->service, ticket);
-        else
-                sprintf(URL, "%s/proxyValidate?ticket=%s", c->CAS_URL, ticket);
+    URL_GET_request(&c->u, URL, &content);
+	log_content(LOG_DEBUG, "proxyValidate: %s", content.ptr);
 
-        URL_GET_request(&c->u, URL, &content);
-	    log_content(LOG_DEBUG, "proxyValidate: %s", content.ptr);
-
-        ret = CAS_find_user(&content, user, 512);
-        if (ret) {
-                if (u != NULL) {
-                        if (strncmp(user, u, strlen(user)) == 0)
-                                ret = 1;
-                        else
-                                ret = 0;
-                } else
-                	ret = 2;
-        }
-        free(content.ptr);
-        return ret;
+    memset(user,0,sizeof(user));
+    ret = CAS_find_user(&content, user, sizeof(user));
+    if ((ret>=0) && (strlen(user)>0) ) {
+        if (strncmp(user, u, strlen(user)) == 0)	ret = 0; // user match
+        else ret = -2; // user does not mach
+    }
+    free(content.ptr);
+    return ret; // user field not found in XML received data
 }
 
 int CAS_cleanup(struct CAS *c) {
 	URL_cleanup(&c->u);	
-	return 1;
+	return 0;
 }
 
 

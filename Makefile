@@ -59,6 +59,7 @@ distfile: dist
 install: pam_cas-reloaded.tgz
 	mv $(ETCDIR)/pam_cas.conf $(ETCDIR)/pam_cas.conf.orig || true
 	tar zxvf pam_cas-reloaded.tgz -C /
+	chmod +x /usr/local/bin/cas_test /usr/local/bin/cas_test-pt
 
 clean:
 	rm obj/*.o obj/*.so obj/test obj/test-pt

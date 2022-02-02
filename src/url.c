@@ -1,16 +1,37 @@
+#include <stdarg.h>
 #include "url.h"
 
 //#define URL_DEBUG 1
 
 void log_msg(int type,char *format,...) {
+    va_list list;
+    va_start(list,format);
+    if (type<=LOG_ERR) {
+        syslog(type,"In file: %s:%d\n",__FILE__,__LINE__);
+        vsyslog(type,format, list);
+        va_end(list);
+        return;
+    }
 #ifdef DEBUG
-    syslog(type, "%s:%d: " FORMAT, __FILE__, __LINE__, ##__VA_ARGS__);
+    syslog(type,"In file: %s:%d\n",__FILE__,__LINE__);
+    vsyslog(type,format, list);
+    va_end(list);
 #endif
 }
 
 void log_content(int type, char *format,...) {
+    va_list list;
+    va_start(list,format);
+    if (type<=LOG_ERR) {
+        syslog(type,"In file: %s:%d\n",__FILE__,__LINE__);
+        vsyslog(type,format, list);
+        va_end(list);
+        return;
+    }
 #ifdef DEBUG_CONTENT
-    syslog(type, "%s:%d: " FORMAT, __FILE__, __LINE__, ##__VA_ARGS__);
+    syslog(type,"In file: %s:%d\n",__FILE__,__LINE__);
+    vsyslog(type,format, list);
+    va_end(list);
 #endif
 }
 void init_string(struct string *s) {
@@ -18,7 +39,6 @@ void init_string(struct string *s) {
 	s->ptr = malloc(s->len+1);
 	if (s->ptr == NULL)
 		return;
-	
 	s->ptr[0] = '\0';
 }
 
@@ -26,7 +46,6 @@ void URL_init(struct URL_Request *u) {
 	u->formpost = NULL;
 	u->lastptr = NULL;
 	u->headerlist = NULL;
-	
 	u->curl = curl_easy_init();
 }
 
