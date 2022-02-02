@@ -7,6 +7,9 @@
 #include <openssl/md5.h>
 #include <security/pam_modules.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 #include "config.h"
 #include "cas.h"
@@ -135,13 +138,29 @@ static int isAllowed(CAS_configuration *c) {
  *  if exists, return userdir current userid
  *  else create with provided userid
  *  return resulting home's userid
- * @param username name used to check /home/<username>
- * @param uid evaluated user id from CAS server
- * @param gid evaluated group id from CAS server
+ * @param userData struct passwd that contains evaluated user CAS data
  * @return home's userID, -1:error
  */
 static int checkAndCreateHome(struct passwd * userData) {
-    return (int) userData->pw_uid;
+    char cmdline[1024];
+    struct stat st;
+    int res=stat(userData->pw_dir,&st);
+    if (res>=0) {
+        // la carpeta existe: ajustamos datos de uid y gid
+        userData->pw_uid=st.st_uid;
+        userData->pw_gid=st.st_gid;
+        return 0; // success
+    }
+    // el home del usuario no existe. lo creamos con los datos recibidos
+    res=mkdir(userData->pw_dir,0755);
+    if (res<0) return -1; // cannot create home directory
+    snprintf(cmdline,sizeof(cmdline),"cp -r /etc/skel/* %s",userData->pw_dir);
+    res=system(cmdline);
+    if (res<0) return -1; // cannot create skeleton directory structure
+    snprintf(cmdline,sizeof(cmdline),"chown -R %d.%d %s",userData->pw_uid,userData->pw_gid,userData->pw_dir);
+    res=system(cmdline);
+    if (res<0) return -1; // cannot set uid/gid
+    return (int) userData->pw_uid; // success
 }
 
 /**
